@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/api/annotation.proto";
+
+option go_package = "proto;proto";
+
+service PubSubService {
+    rpc Publish(PubRequest) returns (PubResponse) {
+        option(google.api.http) = {
+            get: "/api/v1/publish"
+        };
+    }
+    rpc Subscribe(SubRequest) returns (stream SubResponse) {
+        option(google.api.http) = {
+            post: "/api/v1/subscribe"
+        };
+    }
+}
+
+message PubRequest {
+    string publish = 1;
+}
+
+message PubResponse {
+    string value = 1;
+}
+
+message SubRequest {
+    string subscribe = 1;
+}
+
+message SubResponse {
+    string value = 1;
+}
+

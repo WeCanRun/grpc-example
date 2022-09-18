@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/api/annotation.proto";
+
+option go_package = "proto;proto";
+
+
+service SearchService {
+    rpc Search(SearchRequest) returns (SearchResponse) {
+        option(google.api.http) = {
+            get: "/api/v1/search"
+        };
+    }
+    rpc Channel(stream SearchRequest) returns (stream SearchResponse) {
+        option(google.api.http) = {
+            get: "/api/v1/channel"
+        };
+    }
+}
+
+message SearchRequest {
+    string request = 1;
+}
+
+message SearchResponse {
+    string response = 1;
+}
+
