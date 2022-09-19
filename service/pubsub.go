@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/docker/docker/pkg/pubsub"
+	"grpc-example/global/errcode"
 	pb "grpc-example/proto"
 	"strings"
 	"time"
@@ -18,14 +19,13 @@ func NewPubSub() pb.PubSubServiceServer {
 	}
 }
 
-func (s *PubSubService) Publish(ctx context.Context, req *pb.PubRequest) (
-	*pb.PubResponse, error) {
+func (s *PubSubService) Publish(ctx context.Context, req *pb.PubRequest) (*pb.Response, error) {
 	s.pub.Publish(req.GetPublish())
-	return &pb.PubResponse{Value: "Server response: " + req.GetPublish()}, nil
+	return errcode.Success.ToResponse(&pb.PubRequest{Publish: req.GetPublish()})
 }
 
 func (s *PubSubService) Subscribe(req *pb.SubRequest, stream pb.PubSubService_SubscribeServer) error {
-	ch := s.pub.SubscribeTopic(func(v interface{}) bool{
+	ch := s.pub.SubscribeTopic(func(v interface{}) bool {
 		if key, ok := v.(string); ok {
 			if strings.HasSuffix(key, req.GetSubscribe()) {
 				return true
@@ -35,7 +35,7 @@ func (s *PubSubService) Subscribe(req *pb.SubRequest, stream pb.PubSubService_Su
 	})
 
 	for v := range ch {
-		if err := stream.Send(&pb.SubResponse{Value: v.(string)}); err != nil {
+		if err := stream.Send(&pb.SubResponse{Response: v.(string)}); err != nil {
 			return err
 		}
 	}

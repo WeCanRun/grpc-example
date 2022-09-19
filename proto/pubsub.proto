@@ -3,11 +3,12 @@ syntax = "proto3";
 package proto;
 
 import "google/api/annotations.proto";
+import "proto/common.proto";
 
-option go_package = "proto";
+option go_package = "./proto;proto";
 
 service PubSubService {
-    rpc Publish(PubRequest) returns (PubResponse) {
+    rpc Publish(PubRequest) returns (Response) {
         option(google.api.http) = {
             post: "/api/v1/publish"
             body: "publish"
@@ -26,7 +27,7 @@ message PubRequest {
 }
 
 message PubResponse {
-    string value = 1;
+    string response = 1;
 }
 
 message SubRequest {
@@ -34,6 +35,6 @@ message SubRequest {
 }
 
 message SubResponse {
-    string value = 1;
+    string response = 1;
 }
 

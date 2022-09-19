@@ -57,7 +57,7 @@ func RunGrpcGateway(port string) *runtime.ServeMux {
 	return mux
 }
 
-func RunServer(port string) error {
+func NewServer(port string) *http.Server {
 	httpSvr := NewHttpServer()
 	grpcSvr := NewGrpcServer()
 	gateway := RunGrpcGateway(port)
@@ -65,7 +65,10 @@ func RunServer(port string) error {
 	httpSvr.Handle("/", gateway)
 
 	log.Println("server is running...")
-	return http.ListenAndServe(":"+port, grpcHandlerFunc(grpcSvr, httpSvr))
+	return &http.Server{
+		Addr:    ":" + port,
+		Handler: grpcHandlerFunc(grpcSvr, httpSvr),
+	}
 }
 
 func grpcHandlerFunc(grpcSvr *grpc.Server, httpSvr http.Handler) http.Handler {
@@ -88,5 +91,21 @@ func grpcHandlerFunc(grpcSvr *grpc.Server, httpSvr http.Handler) http.Handler {
 
 func main() {
 	log.Println("server is starting...")
-	_ = RunServer(port)
+	svr := NewServer(port)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("recover from ", err)
+		}
+	}()
+
+	if err := svr.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
+
+	//log.Println("Begin shutdown server")
+	//if err := svr.Shutdown(context.Background()); err != nil {
+	//	log.Fatal(err)
+	//}
+
 }

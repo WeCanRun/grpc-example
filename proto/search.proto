@@ -3,16 +3,18 @@ syntax = "proto3";
 package proto;
 
 import "google/api/annotations.proto";
+import "proto/common.proto";
 
-option go_package = "proto";
+option go_package = "./proto;proto";
 
 
 service SearchService {
-    rpc Search(SearchRequest) returns (SearchResponse) {
+    rpc Search(SearchRequest) returns (Response) {
         option(google.api.http) = {
             get: "/api/v1/search"
         };
     }
+
     rpc Channel(stream SearchRequest) returns (stream SearchResponse) {
         option(google.api.http) = {
             get: "/api/v1/channel"

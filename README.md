@@ -4,7 +4,7 @@
 1. 定义 proto 文件
 2. 生成 grpc 代码
     ```shell script
-    protoc -I . --go_out=plugins=grpc:.  proto/*.proto
+    protoc -I . -I ../../googleapis/googleapis  --go_out ./ --go_opt paths=source_relative --go-grpc_out=require_unimplemented_servers=false:./ --go-grpc_opt paths=source_relative    proto/*.proto
     ```
 3. 创建 grpc 服务器，并注册相关服务
 4. 修改 proto 文件，加入 grpc-gatway 相关配置

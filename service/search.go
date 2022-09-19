@@ -3,23 +3,25 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
+	"grpc-example/global/errcode"
 	pb "grpc-example/proto"
 	"io"
 	"log"
 )
 
-type SearchService struct{}
+type SearchService struct {
+	pb.UnimplementedSearchServiceServer
+}
 
 func NewSearch() pb.SearchServiceServer {
 	return &SearchService{}
 }
 
-func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.SearchResponse, error) {
+func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.Response, error) {
 	log.Printf("Request: %#v", r)
-	value := ctx.Value("request")
-	log.Println("value: ", value)
-	return &pb.SearchResponse{Response: r.GetRequest() + " Server response"}, nil
+	resp := pb.SearchResponse{Response: r.Request}
+
+	return errcode.ErrorNotExistTag.ToResponse(&resp)
 }
 
 func (s *SearchService) Channel(stream pb.SearchService_ChannelServer) error {
@@ -31,9 +33,8 @@ func (s *SearchService) Channel(stream pb.SearchService_ChannelServer) error {
 			}
 			return err
 		}
-		err = stream.Send(&pb.SearchResponse{
-			Response: fmt.Sprintf("server recv [%s] ", args.GetRequest()),
-		})
+
+		err = stream.Send(&pb.SearchResponse{Response: args.Request})
 		if err != nil {
 			return err
 		}
