@@ -6,15 +6,19 @@ import (
 	"fmt"
 	pb "grpc-example/proto"
 	"io"
+	"log"
 )
 
 type SearchService struct{}
 
-func NewSearch() pb.SearchServiceServer  {
+func NewSearch() pb.SearchServiceServer {
 	return &SearchService{}
 }
 
 func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.SearchResponse, error) {
+	log.Printf("Request: %#v", r)
+	value := ctx.Value("request")
+	log.Println("value: ", value)
 	return &pb.SearchResponse{Response: r.GetRequest() + " Server response"}, nil
 }
 
@@ -28,11 +32,10 @@ func (s *SearchService) Channel(stream pb.SearchService_ChannelServer) error {
 			return err
 		}
 		err = stream.Send(&pb.SearchResponse{
-			Response: fmt.Sprintf("server recv [%s] ",  args.GetRequest()),
+			Response: fmt.Sprintf("server recv [%s] ", args.GetRequest()),
 		})
 		if err != nil {
 			return err
 		}
 	}
 }
-
