@@ -21,7 +21,7 @@ func NewPubSub() pb.PubSubServiceServer {
 
 func (s *PubSubService) Publish(ctx context.Context, req *pb.PubRequest) (*pb.Response, error) {
 	s.pub.Publish(req.GetPublish())
-	return errcode.Success.ToResponse(&pb.PubRequest{Publish: req.GetPublish()})
+	return errcode.Success.Response(&pb.PubRequest{Publish: req.GetPublish()})
 }
 
 func (s *PubSubService) Subscribe(req *pb.SubRequest, stream pb.PubSubService_SubscribeServer) error {
@@ -35,7 +35,8 @@ func (s *PubSubService) Subscribe(req *pb.SubRequest, stream pb.PubSubService_Su
 	})
 
 	for v := range ch {
-		if err := stream.Send(&pb.SubResponse{Response: v.(string)}); err != nil {
+		response, _ := errcode.Success.Response(&pb.SubResponse{Response: v.(string)})
+		if err := stream.Send(response); err != nil {
 			return err
 		}
 	}

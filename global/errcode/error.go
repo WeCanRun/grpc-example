@@ -38,15 +38,11 @@ func NewWithData(code codes.Code, msg string, data *any.Any) *Status {
 	return &Status{s}
 }
 
-func Response(s *status.Status) *pb.Response {
-	return s.Details()[0].(*pb.Response)
-}
-
 func (s *Status) Code() uint32 {
 	return uint32(s.status.Code())
 }
 
-func (s *Status) ToResponse(msgs ...proto.Message) (*pb.Response, error) {
+func (s *Status) Response(msgs ...proto.Message) (*pb.Response, error) {
 	resp := &pb.Response{
 		Code: Success.Code(),
 		Msg:  Success.status.Message(),

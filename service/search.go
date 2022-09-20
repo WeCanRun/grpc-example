@@ -21,7 +21,7 @@ func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.Re
 	log.Printf("Request: %#v", r)
 	resp := pb.SearchResponse{Response: r.Request}
 
-	return errcode.ErrorNotExistTag.ToResponse(&resp)
+	return errcode.ErrorNotExistTag.Response(&resp)
 }
 
 func (s *SearchService) Channel(stream pb.SearchService_ChannelServer) error {

@@ -11,13 +11,13 @@ service PubSubService {
     rpc Publish(PubRequest) returns (Response) {
         option(google.api.http) = {
             post: "/api/v1/publish"
-            body: "publish"
+            body: "*"
         };
     }
-    rpc Subscribe(SubRequest) returns (stream SubResponse) {
+    rpc Subscribe(SubRequest) returns (stream Response) {
         option(google.api.http) = {
             post: "/api/v1/subscribe"
-            body:"subscribe"
+            body:"*"
         };
     }
 }

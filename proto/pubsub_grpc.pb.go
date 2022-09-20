@@ -55,7 +55,7 @@ func (c *pubSubServiceClient) Subscribe(ctx context.Context, in *SubRequest, opt
 }
 
 type PubSubService_SubscribeClient interface {
-	Recv() (*SubResponse, error)
+	Recv() (*Response, error)
 	grpc.ClientStream
 }
 
@@ -63,8 +63,8 @@ type pubSubServiceSubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *pubSubServiceSubscribeClient) Recv() (*SubResponse, error) {
-	m := new(SubResponse)
+func (x *pubSubServiceSubscribeClient) Recv() (*Response, error) {
+	m := new(Response)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func _PubSubService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream)
 }
 
 type PubSubService_SubscribeServer interface {
-	Send(*SubResponse) error
+	Send(*Response) error
 	grpc.ServerStream
 }
 
@@ -136,7 +136,7 @@ type pubSubServiceSubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *pubSubServiceSubscribeServer) Send(m *SubResponse) error {
+func (x *pubSubServiceSubscribeServer) Send(m *Response) error {
 	return x.ServerStream.SendMsg(m)
 }
 
