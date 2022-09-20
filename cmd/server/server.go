@@ -4,14 +4,14 @@ import (
 	"context"
 	"flag"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"grpc-example/pkg/service"
 	"grpc-example/pkg/swagger"
 	pb "grpc-example/proto"
-	"grpc-example/service"
 	"io/ioutil"
 	"log"
 	"net"
@@ -39,11 +39,6 @@ func main() {
 	if err := svr.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
-
-	//log.Println("Begin shutdown server")
-	//if err := svr.Shutdown(context.Background()); err != nil {
-	//	log.Fatal(err)
-	//}
 
 }
 
@@ -74,12 +69,13 @@ func NewHttpServer() *http.ServeMux {
 }
 
 func RunGrpcGateway(port string) *runtime.ServeMux {
+	ctx := context.Background()
 	endporint := ":" + port
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 	// 注册服务
-	pb.RegisterSearchServiceHandlerFromEndpoint(context.Background(), mux, endporint, opts)
-	pb.RegisterPubSubServiceHandlerFromEndpoint(context.Background(), mux, endporint, opts)
+	pb.RegisterSearchServiceHandlerFromEndpoint(ctx, mux, endporint, opts)
+	pb.RegisterPubSubServiceHandlerFromEndpoint(ctx, mux, endporint, opts)
 
 	return mux
 }
