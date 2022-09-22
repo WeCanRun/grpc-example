@@ -4,13 +4,14 @@
 1. 运行代码
     ```shell script
     git clone git@github.com:WeCanRun/grpc-example.git
-    make && make run  
+    make
     ```
 
 2. 访问 `swagger-ui` 首页
     ```shell script
     http://localhost:9001/swagger-ui/
     ```
+   
 3.  输入`swagger`文档地址, 点击 `Explore`
     ```shell script
     http://localhost:9001/swagger/all.swagger.json
@@ -78,8 +79,48 @@
         mux.Handle(prefix, http.StripPrefix(prefix, fileServer))
     }
    ```
-        
-      
+8. 增加拦截器
+   ```go 
+    func AccessInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+        handler grpc.UnaryHandler) (interface{}, error) {
+    
+        requestLog := "access request log: method: %s, begin_time: %d, request: %v"
+        begin := time.Now().Unix()
+        log.Printf(requestLog, info.FullMethod, begin, req)
+    
+        resp, err := handler(ctx, req)
+        end := time.Now().Unix()
+    
+        respLog := "access response log: method: %s, begin_time: %d, end_time: %d, spend_time: %d, response: %v"
+        log.Printf(respLog, info.FullMethod, begin, end, end - begin, resp)
+    
+        return resp, err
+    }
+   ```
+   ```go
+    func NewGrpcServer() *grpc.Server {
+        opts := []grpc.ServerOption{
+            grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+                middleware.AccessInterceptor,
+                grpc_ctxtags.UnaryServerInterceptor(),
+                grpc_opentracing.UnaryServerInterceptor(),
+                grpc_recovery.UnaryServerInterceptor(),
+            )),
+        }
+    
+        server := grpc.NewServer(opts...)
+    
+        // 注册服务
+        pb.RegisterSearchServiceServer(server, service.NewSearch())
+        pb.RegisterPubSubServiceServer(server, service.NewPubSub())
+        reflection.Register(server)
+    
+        return server
+    }
+   ```
+9. 使用 `metadata` 自定义认证
+10. 链路追踪 `jaeger`
+
 
 ## 参考
 https://github.com/grpc-ecosystem/grpc-gateway

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"google.golang.org/grpc/metadata"
 	"grpc-example/global/errcode"
 	pb "grpc-example/proto"
 	"io"
@@ -18,13 +19,17 @@ func NewSearch() pb.SearchServiceServer {
 }
 
 func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.Response, error) {
-	log.Printf("Request: %#v", r)
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	log.Printf("Request: %#v, metadata: %#v", r, md)
 	resp := pb.SearchResponse{Response: r.Request}
 
 	return errcode.ErrorNotExistTag.Response(&resp)
 }
 
 func (s *SearchService) Channel(stream pb.SearchService_ChannelServer) error {
+	md, _ := metadata.FromIncomingContext(stream.Context())
+	log.Printf("Metadata: %#v", md)
 	for {
 		args, err := stream.Recv()
 		if err != nil {

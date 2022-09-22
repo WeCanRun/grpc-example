@@ -4,11 +4,16 @@ import (
 	"context"
 	"flag"
 	assetfs "github.com/elazarl/go-bindata-assetfs"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"grpc-example/pkg/middleware"
 	"grpc-example/pkg/service"
 	"grpc-example/pkg/swagger"
 	pb "grpc-example/proto"
@@ -16,8 +21,12 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"path"
 	"strings"
+	"syscall"
+	"time"
 )
 
 var port string
@@ -27,26 +36,56 @@ func init() {
 }
 
 func main() {
-	log.Println("server is starting...")
+
+	log.Println("Server is starting...")
 	svr := NewServer(port)
 
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("recover from ", err)
+	go func() {
+		if err := svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("ListenAndServe: %v", err)
 		}
 	}()
 
-	if err := svr.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	quit := make(chan os.Signal)
+	// 阻塞、等待终止信号
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	if err := svr.Shutdown(ctx); err != nil {
+		log.Printf("Shutdown err: %v", err)
 	}
+
+	log.Println("Server is shutdowned")
 
 }
 
 func NewTcpServer(port string) (net.Listener, error) {
 	return net.Listen("tcp", ":"+port)
 }
+
 func NewGrpcServer() *grpc.Server {
-	server := grpc.NewServer()
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			grpc_opentracing.UnaryServerInterceptor(),
+			grpc_recovery.UnaryServerInterceptor(),
+			grpc_ctxtags.UnaryServerInterceptor(),
+			middleware.AccessUnaryServer(true),
+			middleware.AuthUnaryServer(true),
+		)),
+
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_opentracing.StreamServerInterceptor(),
+			grpc_recovery.StreamServerInterceptor(),
+			grpc_ctxtags.StreamServerInterceptor(),
+			middleware.AccessStreamServer(true),
+			middleware.AuthStreamServerInterceptor(true),
+		)),
+	}
+
+	server := grpc.NewServer(opts...)
 
 	// 注册服务
 	pb.RegisterSearchServiceServer(server, service.NewSearch())
@@ -87,7 +126,7 @@ func NewServer(port string) *http.Server {
 
 	httpSvr.Handle("/", gateway)
 
-	log.Println("server is running...")
+	log.Println("Server is running...")
 	return &http.Server{
 		Addr:    ":" + port,
 		Handler: grpcHandlerFunc(grpcSvr, httpSvr),

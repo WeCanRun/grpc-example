@@ -42,6 +42,10 @@ func (s *Status) Code() uint32 {
 	return uint32(s.status.Code())
 }
 
+func (s *Status) Msg() string {
+	return s.status.Message()
+}
+
 func (s *Status) Response(msgs ...proto.Message) (*pb.Response, error) {
 	resp := &pb.Response{
 		Code: Success.Code(),
@@ -54,9 +58,7 @@ func (s *Status) Response(msgs ...proto.Message) (*pb.Response, error) {
 	for _, msg := range msgs {
 		if msg != proto.Message(nil) {
 			_any, err = anypb.New(msg)
-			log.Println("s.Code()", s.Code())
 			resp.Code = s.Code()
-			log.Println("s.status.Message()", s.status.Message())
 			resp.Msg = s.status.Message()
 			resp.Data = _any
 		}
