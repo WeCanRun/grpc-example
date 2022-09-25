@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	log "github.com/WeCanRun/gin-blog/pkg/logging"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"grpc-example/global/constants"
@@ -49,7 +50,9 @@ func _auth(ctx context.Context) error {
 	}
 
 	if key != auth.GetAppKey() || secret != auth.GetAppSecret() {
-		return errors.New(errcode.Unauthorized.Msg())
+		err := errors.New(errcode.Unauthorized.Msg())
+		log.Warnf("_auth fail, err :%v", err)
+		return err
 	}
 
 	return nil

@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
+	log "github.com/WeCanRun/gin-blog/pkg/logging"
 	"google.golang.org/grpc"
-	"log"
 	"time"
 )
 
@@ -36,7 +36,7 @@ func AccessStreamServer(enable bool) grpc.StreamServerInterceptor {
 func beforeAccess(req interface{}, method string) int64 {
 	requestLog := "access request log: method: %s, begin_time: %d, request: %v"
 	begin := time.Now().Unix()
-	log.Printf(requestLog, method, begin, req)
+	log.Infof(requestLog, method, begin, req)
 
 	return begin
 }
@@ -44,5 +44,5 @@ func beforeAccess(req interface{}, method string) int64 {
 func AfterAccess(method string, begin int64, resp interface{}) {
 	end := time.Now().Unix()
 	respLog := "access response log: method: %s, begin_time: %d, end_time: %d, spend_time: %d, response: %v"
-	log.Printf(respLog, method, begin, end, end-begin, resp)
+	log.Infof(respLog, method, begin, end, end-begin, resp)
 }

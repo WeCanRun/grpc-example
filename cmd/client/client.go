@@ -4,29 +4,33 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/WeCanRun/gin-blog/global"
+	log "github.com/WeCanRun/gin-blog/pkg/logging"
+	"github.com/WeCanRun/gin-blog/pkg/setting"
+	"github.com/WeCanRun/gin-blog/pkg/tracer"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"grpc-example/pkg/client/auth"
+	"grpc-example/pkg/middleware/tracing"
+	"grpc-example/pkg/server"
 	pb "grpc-example/proto"
 	"io"
-	"log"
 	"time"
 )
-
-const PORT = "9001"
 
 var ctx = metadata.AppendToOutgoingContext(context.Background(), "key", "value")
 
 func CallChannel(c pb.SearchServiceClient) {
 	stream, err := c.Channel(ctx)
 	if err != nil {
-		log.Printf("call channel, err: %v: ", err.Error())
+		log.Infof("call channel, err: %v: ", err.Error())
 	}
 
 	go func() {
 		for {
 			if err := stream.Send(&pb.SearchRequest{Request: "call chanel"}); err != nil {
-				log.Println("send: " + err.Error())
+				log.Info("send: " + err.Error())
 			}
 			time.Sleep(time.Second)
 		}
@@ -38,24 +42,25 @@ func CallChannel(c pb.SearchServiceClient) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			log.Println("recv: " + err.Error())
+			log.Info("recv: " + err.Error())
+			return
 		}
-		log.Println("resp: " + recv.Response)
+		log.Info("resp: " + recv.Response)
 	}
 }
 
 func Publish(c pb.PubSubServiceClient, publish string) {
 	_, err := c.Publish(ctx, &pb.PubRequest{Publish: publish})
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 	}
-	log.Println(fmt.Sprintf("published %s ...", publish))
+	log.Info(fmt.Sprintf("published %s ...", publish))
 }
 
 func SubscribeTopic(c pb.PubSubServiceClient) {
 	stream, err := c.Subscribe(ctx, &pb.SubRequest{Subscribe: "golang:"})
 	if err != nil {
-		log.Println(err)
+		log.Info(err)
 	}
 
 	for {
@@ -64,19 +69,37 @@ func SubscribeTopic(c pb.PubSubServiceClient) {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			log.Println(err)
+			log.Info(err)
 		}
-		log.Println("subscribe: " + recv.String())
+		log.Info("subscribe: " + recv.String())
 	}
 }
 
 func main() {
-	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithPerRPCCredentials(&auth.Auth{
-		AppKey:    auth.GetAppKey(),
-		AppSecret: auth.GetAppSecret(),
-	})}
+	s := setting.Setup("")
+	global.Setting = s
 
-	conn, err := grpc.Dial(":"+PORT, opts...)
+	log.Setup()
+
+	tracer.Setup("example-client", ":6831")
+
+	opts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithPerRPCCredentials(&auth.Auth{
+			AppKey:    auth.GetAppKey(),
+			AppSecret: auth.GetAppSecret(),
+		}),
+
+		grpc.WithUnaryInterceptor(grpc_middleware.ChainUnaryClient(
+			tracing.UnaryClientInterceptor(),
+		)),
+
+		grpc.WithStreamInterceptor(grpc_middleware.ChainStreamClient(
+			tracing.StreamClientInterceptor(),
+		)),
+	}
+
+	conn, err := grpc.Dial(":"+server.Port, opts...)
 
 	if err != nil {
 		log.Fatalf("grpc.Dial err: %v", err)
@@ -84,14 +107,15 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewSearchServiceClient(conn)
-	resp, err := client.Search(context.Background(), &pb.SearchRequest{
+	resp, err := client.Search(ctx, &pb.SearchRequest{
 		Request: "gRPC ",
 	})
+
 	if err != nil {
-		log.Fatalf("client.Search err: %v", err)
+		log.Infof("client.Search err: %v", err)
 	}
 
-	log.Printf("resp: %s", resp.String())
+	log.Infof("resp: %s", resp.String())
 
 	go CallChannel(client)
 
